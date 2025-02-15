@@ -18,23 +18,67 @@ async function writeToLog(message: string) {
 }
 
 export interface DataItem {
-    data: {
-        msg?: string;
-        text?: string;
-    }[] | {
-        msg?: string;
-        text?: string;
-    };
-}
-
-interface Category {
     id: string;
-    content: string;
+    text: string;
 }
 
-interface CategorizedStructure {
-    categories: Category[];
+interface ProcessedPost {
+    id: string;
+    text: string;
+    embedding?: number[];
 }
+
+const cosineSimilarity = (vecA: number[], vecB: number[]): number => {
+    const dotProduct = vecA.reduce((sum, val, index) => sum + val * vecB[index], 0);
+    const magnitudeA = Math.sqrt(vecA.reduce((sum, val) => sum + val * val, 0));
+    const magnitudeB = Math.sqrt(vecB.reduce((sum, val) => sum + val * val, 0));
+    return dotProduct / (magnitudeA * magnitudeB);
+};
+
+const groupPostsById = (posts: DataItem[]): ProcessedPost[] => {
+    const groupedPosts = new Map<string, string[]>();
+    
+    // Group all texts by ID
+    posts.forEach(post => {
+        if (!groupedPosts.has(post.id)) {
+            groupedPosts.set(post.id, []);
+        }
+        if (post.text) {
+            groupedPosts.get(post.id)!.push(post.text);
+        }
+    });
+
+    // Convert grouped posts to final format
+    return Array.from(groupedPosts.entries()).map(([id, texts]) => ({
+        id,
+        text: texts.join('\n')
+    }));
+};
+
+const calculateSimilarity = (
+    postEmbedding: number[], 
+    queryEmbedding: number[], 
+    postText: string, 
+    query: string
+): number => {
+    // Base semantic similarity
+    const similarity = cosineSimilarity(postEmbedding, queryEmbedding);
+    
+    // Convert to lowercase for case-insensitive matching
+    const postLower = postText.toLowerCase();
+    const queryLower = query.toLowerCase();
+    
+    // Exact phrase matching boost
+    const phraseBoost = postLower.includes(queryLower) ? 0.2 : 0;
+    
+    // Individual terms matching boost
+    const queryTerms = queryLower.split(' ').filter(term => term.length > 2);
+    const termBoost = queryTerms.reduce((boost, term) => {
+        return boost + (postLower.includes(term) ? 0.1 : 0);
+    }, 0);
+    
+    return similarity + phraseBoost + termBoost;
+};
 
 export default {
     name: "DATA_INSIGHT",
@@ -61,32 +105,38 @@ export default {
         try {
             await writeToLog("Starting DATA_INSIGHT analysis...");
 
-            // Fetch data using the provided user address or use a default
             const userAddress = options.userAddress || "0xb4b291607e91da4654cab88e5e35ba2921ef68f1b43725ef2faeae045bf5915d";
-
-            // Fetch raw data
             const rawData = await getFolderByUserAddress(userAddress);
-            await writeToLog(`Raw data received: ${JSON.stringify(rawData, null, 2)}`);
 
             if (!rawData || typeof rawData === "string") {
                 throw new Error('No valid data found');
             }
 
-            // Process the data to extract text content
-            const datapost = rawData.map((item: DataItem) => {
+            // Process and group the raw data
+            const processedPosts = rawData.map((item: any) => {
                 const data = item.data;
                 if (Array.isArray(data)) {
-                    return data.map(i => i.text).filter(Boolean);
+                    return data.map(d => ({
+                        id: item.id,
+                        text: d.text || d.msg || ''
+                    }));
                 } else if (typeof data === 'object' && data !== null) {
-                    return data.text ? [data.text] : [];
+                    return [{
+                        id: item.id,
+                        text: data.text || data.msg || ''
+                    }];
                 }
                 return [];
-            }).flat();
+            }).flat().filter(post => post.text && post.text.length > 0);
 
-            await writeToLog(`Processed data posts: ${JSON.stringify(datapost, null, 2)}`);
+            await writeToLog(`Processed ${processedPosts.length} posts`);
 
-            if (datapost.length === 0) {
-                throw new Error('No valid text content found in the data');
+            // Group posts by ID
+            const groupedPosts = groupPostsById(processedPosts);
+            await writeToLog(`Grouped into ${groupedPosts.length} unique posts`);
+
+            if (groupedPosts.length === 0) {
+                throw new Error('No valid content found after processing');
             }
 
             // Initialize OpenAI Embeddings
@@ -94,125 +144,46 @@ export default {
                 apiKey: process.env.OPENAI_API_KEY,
             });
 
-            // Create embeddings for each post
-            const embeddingsData = await embeddings.embedDocuments(datapost);
-            await writeToLog(`Embeddings created for data posts: ${JSON.stringify(embeddingsData, null, 2)}`);
+            // Create embeddings for posts
+            const postEmbeddings = await embeddings.embedDocuments(
+                groupedPosts.map(post => post.text)
+            );
 
-            // Create embedding for the user question
-            const questionEmbedding = await embeddings.embedDocuments([message.content.text]);
+            // Create embedding for query
+            const queryEmbedding = await embeddings.embedDocuments([message.content.text]);
 
-            // Calculate similarity between the question and each post
-            const similarities = embeddingsData.map((embedding, index) => {
-                return {
-                    text: datapost[index],
-                    similarity: cosineSimilarity(embedding, questionEmbedding[0])
-                };
-            });
+            // Calculate similarities and rank posts
+            const rankedPosts = groupedPosts.map((post, index) => ({
+                ...post,
+                similarity: calculateSimilarity(
+                    postEmbeddings[index],
+                    queryEmbedding[0],
+                    post.text,
+                    message.content.text
+                )
+            }))
+            .sort((a, b) => b.similarity - a.similarity)
+            .slice(0, 3);  // Get top 3 most relevant posts
 
-            // Sort posts by similarity
-            similarities.sort((a, b) => b.similarity - a.similarity);
-
-            // Get the most relevant post
-            const bestMatch = similarities[0];
-            await writeToLog(`Best matching post: ${bestMatch.text}`);
-
+            // Generate comprehensive response using top posts
+            const context = rankedPosts.map(post => post.text).join('\n\n');
             const response = await generateText({
                 runtime,
-                context: analyzePostPrompt(message.content.text, bestMatch.text),
+                context: analyzePostPrompt(message.content.text, context),
                 modelClass: ModelClass.MEDIUM,
                 stop: ["\n"],
             });
-            // const CATEGORY_KEYWORDS = {
-            //     CRYPTO: ['crypto', 'bitcoin', 'eth', '$', 'btc', 'nft', 'web3', 'airdrop', 'token', 'memecoin', 'blockchain', 'wallet', 'sui', 'solana'],
-            //     ML_AI: ['ai', 'ml', 'model', 'grok', 'neural', 'chat', 'bot', 'xai'],
-            //     DEVELOPMENT: ['dev', 'code', 'protocol', 'extension', 'api', 'sdk', 'framework', 'smartcontract', 'dapp'],
-            //     DEFI: ['defi', 'finance', 'payment', 'trading', 'swap', 'yield', 'lending', 'staking'],
-            //     SOCIAL: ['twitter', 'social', 'community', 'follow', 'rt', 'like', 'engagement', '@'],
-            //     MARKET: ['market', 'price', 'pump', 'dump', 'bull', 'bear', 'trend', 'season', 'altcoin'],
-            //     NEWS: ['news', 'update', 'announcement', 'launch', 'release', 'progress'],
-            //     GAMING: ['game', 'gaming', 'play', 'reward', 'naruto'],
-            //     EVENTS: ['event', 'hackathon', 'competition', 'prize', 'pool', 'register', 'join']
-            // };
 
-            // // Function để kiểm tra post thuộc category nào
-            // const checkPostCategory = (post: string, keywords: string[]): boolean => {
-            //     return keywords.some(keyword => post.toLowerCase().includes(keyword));
-            // };
-
-            // // Tạo categorized content
-            // const categorizedContent: CategorizedStructure = {
-            //     categories: [
-            //         {
-            //             id: "Crypto",
-            //             content: datapost.filter(post =>
-            //                 checkPostCategory(post, CATEGORY_KEYWORDS.CRYPTO)
-            //             ).join("\n"),
-            //         },
-            //         {
-            //             id: "ML/AI",
-            //             content: datapost.filter(post =>
-            //                 checkPostCategory(post, CATEGORY_KEYWORDS.ML_AI)
-            //             ).join("\n"),
-            //         },
-            //         {
-            //             id: "Development",
-            //             content: datapost.filter(post =>
-            //                 checkPostCategory(post, CATEGORY_KEYWORDS.DEVELOPMENT)
-            //             ).join("\n"),
-            //         },
-            //         {
-            //             id: "DeFi",
-            //             content: datapost.filter(post =>
-            //                 checkPostCategory(post, CATEGORY_KEYWORDS.DEFI)
-            //             ).join("\n"),
-            //         },
-            //         {
-            //             id: "Social",
-            //             content: datapost.filter(post =>
-            //                 checkPostCategory(post, CATEGORY_KEYWORDS.SOCIAL)
-            //             ).join("\n"),
-            //         },
-            //         {
-            //             id: "Market",
-            //             content: datapost.filter(post =>
-            //                 checkPostCategory(post, CATEGORY_KEYWORDS.MARKET)
-            //             ).join("\n"),
-            //         },
-            //         {
-            //             id: "News",
-            //             content: datapost.filter(post =>
-            //                 checkPostCategory(post, CATEGORY_KEYWORDS.NEWS)
-            //             ).join("\n"),
-            //         },
-            //         {
-            //             id: "Gaming",
-            //             content: datapost.filter(post =>
-            //                 checkPostCategory(post, CATEGORY_KEYWORDS.GAMING)
-            //             ).join("\n"),
-            //         },
-            //         {
-            //             id: "Events",
-            //             content: datapost.filter(post =>
-            //                 checkPostCategory(post, CATEGORY_KEYWORDS.EVENTS)
-            //             ).join("\n"),
-            //         },
-            //         {
-            //             id: "Other",
-            //             content: datapost.filter(post => {
-            //                 // Check if post doesn't belong to any defined category
-            //                 return !Object.values(CATEGORY_KEYWORDS).some(keywords =>
-            //                     checkPostCategory(post, keywords)
-            //                 );
-            //             }).join("\n"),
-            //         }
-            //     ].filter(category => category.content.trim().length > 0) // Remove empty categories
-            // };
             callback?.({
                 text: response.trim(),
                 action: ChatDataAction.INSIGHT_DATA,
                 params: {
                     label: response.trim(),
-                    // categorizedContent,
+                    relevantPosts: rankedPosts.map(post => ({
+                        id: post.id,
+                        text: post.text,
+                        similarity: post.similarity
+                    }))
                 }
             });
 
@@ -252,12 +223,4 @@ export default {
             }
         ]
     ] as ActionExample[][]
-};
-
-// Cosine Similarity function to compare embeddings
-const cosineSimilarity = (vecA: number[], vecB: number[]): number => {
-    const dotProduct = vecA.reduce((sum, val, index) => sum + val * vecB[index], 0);
-    const magnitudeA = Math.sqrt(vecA.reduce((sum, val) => sum + val * val, 0));
-    const magnitudeB = Math.sqrt(vecB.reduce((sum, val) => sum + val * val, 0));
-    return dotProduct / (magnitudeA * magnitudeB);
 };

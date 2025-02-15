@@ -113,73 +113,39 @@ export const analyzeSentimentPrompt = (textContent: string) => {
         `;
 }
 
+
+
 export const analyzePostPrompt = (textContent: string, datapost: string) => {
     return `
-        Analyze this post: "${textContent}" using this data: "${datapost}"
-        Should do the following:
-        1. Content Context & Theme Analysis
-        Please provide:
+        Based on the question: "${textContent}"
+        Analyze these relevant data posts: "${datapost}"
 
-- A concise summary of the post's main message (2-3 sentences)
-- The primary topic category (e.g., policy changes, market trends, company news)
-- How this post connects to broader market/industry trends
-- Any notable timing factors that make this post particularly relevant
+        Provide a focused analysis in the following format:
 
-2. Impact Assessment
-- Sentiment Analysis
-- Overall tone (positive/negative/neutral)
-- Key phrases or statements that drive the sentiment
-- Any notable shifts in tone throughout the post
+        ### 1. Direct Query Response
+        - Provide the most direct and relevant answer to the query
+        - Include only facts that are directly related to the main query
+        - Note the confidence level of the information (High/Medium/Low)
+        - Keep this section focused on core facts only
 
-- Engagement Drivers
+        ### 2. Key Information
+        - **Core Details**:
+          List only verified details directly related to the query (dates, numbers, requirements)
+        - **Key Stakeholders**:
+          List only organizations/entities directly involved
 
-- Identify why this post might resonate with readers
-- List key stakeholders who would be most interested
-- Analyze potential market psychology impacts
-- Detail which market segments might be most affected
+        ### 3. Additional Context & Insights
+        - Note any missing but important information
+        - List only directly related action items
+        - Do not include speculative information
+        - Do not mix information from unrelated events
 
-Output Format Preferences:
-
-- Use bullet points for clarity
-- Include relevant numbers/percentages where applicable
-- Bold key insights and conclusions
-- Separate speculation from fact-based analysis
+        Important Guidelines:
+        - Bold all dates, numbers, and deadlines using **text**
+        - Keep each bullet point focused on a single piece of information
+        - Maintain clear separation between sections with line breaks
+        - Only include information that is directly related to the query
+        - Exclude information from similar but different events
+        - If information seems related but you're not sure, mention it in a 'Note:' at the end
     `;
-}
-
-export const CATEGORIZATION_PROMPT = (datapost: string) => {
-    return `
-Analyze and categorize the following content into specific categories.
-
-Rules for category and content organization:
-* Identify key categories like:
-   * Q&A
-   * Crypto
-   * ML/AI
-   * Data
-   * Development
-* List each distinct content piece separately with a number
-* Keep content pieces separate rather than merging them
-
-Input text:
-${datapost}
-
-Please categorize the content and return it in the following JSON format (maintain exact format):
-{
-  "categories": [
-    {
-      "category": "Q&A",
-      "content1": "First piece of Q&A related content",
-      "content2": "Second piece of Q&A related content"
-    },
-    {
-      "category": "Crypto",
-      "content1": "First piece of crypto related content",
-      "content2": "Second piece of crypto related content"
-    }
-  ]
-}
-
-Response (in JSON only):
-`;
 }
