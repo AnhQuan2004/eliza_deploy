@@ -147,9 +147,39 @@ Output Format Preferences:
     `;
 }
 
-
-export const buildgraphPrompt = (textContent: string, datapost: string) => {
+export const CATEGORIZATION_PROMPT = (datapost: string) => {
     return `
-        Build a graph from this post: "${textContent}" using this data: "${datapost}"
-    `;
+Analyze and categorize the following content into specific categories.
+
+Rules for category and content organization:
+* Identify key categories like:
+   * Q&A
+   * Crypto
+   * ML/AI
+   * Data
+   * Development
+* List each distinct content piece separately with a number
+* Keep content pieces separate rather than merging them
+
+Input text:
+${datapost}
+
+Please categorize the content and return it in the following JSON format (maintain exact format):
+{
+  "categories": [
+    {
+      "category": "Q&A",
+      "content1": "First piece of Q&A related content",
+      "content2": "Second piece of Q&A related content"
+    },
+    {
+      "category": "Crypto",
+      "content1": "First piece of crypto related content",
+      "content2": "Second piece of crypto related content"
+    }
+  ]
+}
+
+Response (in JSON only):
+`;
 }

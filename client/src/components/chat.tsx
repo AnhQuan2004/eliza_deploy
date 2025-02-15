@@ -10,7 +10,7 @@ import { useTransition, animated, type AnimatedProps } from "@react-spring/web";
 import { Paperclip, Send, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { Content, UUID } from "@elizaos/core";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api";
 import { cn, moment } from "@/lib/utils";
 import { Avatar, AvatarImage } from "./ui/avatar";
@@ -169,6 +169,30 @@ export default function Page({ agentId }: { agentId: UUID }) {
     });
 
     const CustomAnimatedDiv = animated.div as React.FC<AnimatedDivProps>;
+
+    // Thêm useQuery để fetch data
+    const { data: categoryData } = useQuery({
+        queryKey: ["category-data"],
+        queryFn: async () => {
+            const response = await fetch("http://localhost:3000/data", {
+                method: "GET",
+                headers: {
+                    "Content-Type": "application/json"
+                }
+            });
+            if (!response.ok) {
+                throw new Error("Network response was not ok");
+            }
+            return response.json();
+        }
+    });
+
+    useEffect(() => {
+        if (categoryData) {
+            console.log("Category Data:", categoryData);
+            // Xử lý data ở đây
+        }
+    }, [categoryData]);
 
     return (
         <div className="flex flex-col w-full h-[calc(100dvh)] p-4">

@@ -1,6 +1,3 @@
-
-
-
 import { OpenAIEmbeddings } from '@langchain/openai';
 import { Action, ActionExample, Memory, IAgentRuntime, State, HandlerCallback, generateText, ModelClass, elizaLogger, RAGKnowledgeItem } from "@elizaos/core";
 import { analyzePostPrompt } from "./prompts";
@@ -30,14 +27,23 @@ export interface DataItem {
     };
 }
 
+interface Category {
+    id: string;
+    content: string;
+}
+
+interface CategorizedStructure {
+    categories: Category[];
+}
+
 export default {
     name: "DATA_INSIGHT",
     similes: [
-        "insight data", "what is the data", "show me the data purpose", 
+        "insight data", "what is the data", "show me the data purpose",
         "give me insights", "data insight"
     ],
     description: "Insight data from all collected data",
-    
+
     validate: async (runtime: IAgentRuntime, message: Memory) => {
         return message.content?.text?.length > 0;
     },
@@ -46,9 +52,9 @@ export default {
         runtime: IAgentRuntime,
         message: Memory,
         state: State,
-        options: { 
+        options: {
             userAddress?: string;
-            [key: string]: unknown 
+            [key: string]: unknown
         },
         callback?: HandlerCallback
     ) => {
@@ -57,11 +63,11 @@ export default {
 
             // Fetch data using the provided user address or use a default
             const userAddress = options.userAddress || "0xb4b291607e91da4654cab88e5e35ba2921ef68f1b43725ef2faeae045bf5915d";
-            
+
             // Fetch raw data
             const rawData = await getFolderByUserAddress(userAddress);
             await writeToLog(`Raw data received: ${JSON.stringify(rawData, null, 2)}`);
-            
+
             if (!rawData || typeof rawData === "string") {
                 throw new Error('No valid data found');
             }
@@ -116,12 +122,97 @@ export default {
                 modelClass: ModelClass.MEDIUM,
                 stop: ["\n"],
             });
+            // const CATEGORY_KEYWORDS = {
+            //     CRYPTO: ['crypto', 'bitcoin', 'eth', '$', 'btc', 'nft', 'web3', 'airdrop', 'token', 'memecoin', 'blockchain', 'wallet', 'sui', 'solana'],
+            //     ML_AI: ['ai', 'ml', 'model', 'grok', 'neural', 'chat', 'bot', 'xai'],
+            //     DEVELOPMENT: ['dev', 'code', 'protocol', 'extension', 'api', 'sdk', 'framework', 'smartcontract', 'dapp'],
+            //     DEFI: ['defi', 'finance', 'payment', 'trading', 'swap', 'yield', 'lending', 'staking'],
+            //     SOCIAL: ['twitter', 'social', 'community', 'follow', 'rt', 'like', 'engagement', '@'],
+            //     MARKET: ['market', 'price', 'pump', 'dump', 'bull', 'bear', 'trend', 'season', 'altcoin'],
+            //     NEWS: ['news', 'update', 'announcement', 'launch', 'release', 'progress'],
+            //     GAMING: ['game', 'gaming', 'play', 'reward', 'naruto'],
+            //     EVENTS: ['event', 'hackathon', 'competition', 'prize', 'pool', 'register', 'join']
+            // };
 
+            // // Function để kiểm tra post thuộc category nào
+            // const checkPostCategory = (post: string, keywords: string[]): boolean => {
+            //     return keywords.some(keyword => post.toLowerCase().includes(keyword));
+            // };
+
+            // // Tạo categorized content
+            // const categorizedContent: CategorizedStructure = {
+            //     categories: [
+            //         {
+            //             id: "Crypto",
+            //             content: datapost.filter(post =>
+            //                 checkPostCategory(post, CATEGORY_KEYWORDS.CRYPTO)
+            //             ).join("\n"),
+            //         },
+            //         {
+            //             id: "ML/AI",
+            //             content: datapost.filter(post =>
+            //                 checkPostCategory(post, CATEGORY_KEYWORDS.ML_AI)
+            //             ).join("\n"),
+            //         },
+            //         {
+            //             id: "Development",
+            //             content: datapost.filter(post =>
+            //                 checkPostCategory(post, CATEGORY_KEYWORDS.DEVELOPMENT)
+            //             ).join("\n"),
+            //         },
+            //         {
+            //             id: "DeFi",
+            //             content: datapost.filter(post =>
+            //                 checkPostCategory(post, CATEGORY_KEYWORDS.DEFI)
+            //             ).join("\n"),
+            //         },
+            //         {
+            //             id: "Social",
+            //             content: datapost.filter(post =>
+            //                 checkPostCategory(post, CATEGORY_KEYWORDS.SOCIAL)
+            //             ).join("\n"),
+            //         },
+            //         {
+            //             id: "Market",
+            //             content: datapost.filter(post =>
+            //                 checkPostCategory(post, CATEGORY_KEYWORDS.MARKET)
+            //             ).join("\n"),
+            //         },
+            //         {
+            //             id: "News",
+            //             content: datapost.filter(post =>
+            //                 checkPostCategory(post, CATEGORY_KEYWORDS.NEWS)
+            //             ).join("\n"),
+            //         },
+            //         {
+            //             id: "Gaming",
+            //             content: datapost.filter(post =>
+            //                 checkPostCategory(post, CATEGORY_KEYWORDS.GAMING)
+            //             ).join("\n"),
+            //         },
+            //         {
+            //             id: "Events",
+            //             content: datapost.filter(post =>
+            //                 checkPostCategory(post, CATEGORY_KEYWORDS.EVENTS)
+            //             ).join("\n"),
+            //         },
+            //         {
+            //             id: "Other",
+            //             content: datapost.filter(post => {
+            //                 // Check if post doesn't belong to any defined category
+            //                 return !Object.values(CATEGORY_KEYWORDS).some(keywords =>
+            //                     checkPostCategory(post, keywords)
+            //                 );
+            //             }).join("\n"),
+            //         }
+            //     ].filter(category => category.content.trim().length > 0) // Remove empty categories
+            // };
             callback?.({
                 text: response.trim(),
                 action: ChatDataAction.INSIGHT_DATA,
                 params: {
-                    label: response.trim()
+                    label: response.trim(),
+                    // categorizedContent,
                 }
             });
 
