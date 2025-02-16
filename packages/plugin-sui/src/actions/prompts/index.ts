@@ -113,24 +113,39 @@ export const analyzeSentimentPrompt = (textContent: string) => {
         `;
 }
 
+
+
 export const analyzePostPrompt = (textContent: string, datapost: string) => {
     return `
-        Analyze this post: "${textContent}" using this data: "${datapost}"
-        Provide a brief analysis with:
+        Based on the question: "${textContent}"
+        Analyze these relevant data posts: "${datapost}"
 
-1. Key Metrics:
-   - Engagement stats
-   - Sentiment (positive/negative/neutral)
+        Provide a focused analysis in the following format:
 
-2. Quick Analysis:
-   - Topic category
-   - Main points
-   - Market impact
+        ### 1. Direct Query Response
+        - Provide the most direct and relevant answer to the query
+        - Include only facts that are directly related to the main query
+        - Note the confidence level of the information (High/Medium/Low)
+        - Keep this section focused on core facts only
 
-3. Action Items:
-   - Key takeaway
-   - Risk factors
+        ### 2. Key Information
+        - **Core Details**:
+          List only verified details directly related to the query (dates, numbers, requirements)
+        - **Key Stakeholders**:
+          List only organizations/entities directly involved
 
-Be specific and data-focused. Keep it brief.
+        ### 3. Additional Context & Insights
+        - Note any missing but important information
+        - List only directly related action items
+        - Do not include speculative information
+        - Do not mix information from unrelated events
+
+        Important Guidelines:
+        - Bold all dates, numbers, and deadlines using **text**
+        - Keep each bullet point focused on a single piece of information
+        - Maintain clear separation between sections with line breaks
+        - Only include information that is directly related to the query
+        - Exclude information from similar but different events
+        - If information seems related but you're not sure, mention it in a 'Note:' at the end
     `;
 }

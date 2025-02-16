@@ -3,6 +3,7 @@ import bodyParser from "body-parser";
 import cors from "cors";
 import path from "path";
 import fs from "fs";
+import { getFolderByUserAddress } from "./tusky";
 
 import {
     type AgentRuntime,
@@ -56,7 +57,13 @@ export function createApiRouter(
 ) {
     const router = express.Router();
 
-    router.use(cors());
+    router.use((req, res, next) => {
+        res.header("Access-Control-Allow-Origin", "*");
+        res.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+        res.header("Access-Control-Allow-Headers", "Content-Type");
+        next();
+    });
+
     router.use(bodyParser.json());
     router.use(bodyParser.urlencoded({ extended: true }));
     router.use(
@@ -72,6 +79,78 @@ export function createApiRouter(
     router.get("/hello", (req, res) => {
         res.json({ message: "Hello World!" });
     });
+
+    router.get("/data", async (req, res) => {
+        res.header("Access-Control-Allow-Origin", "*");
+        res.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+        res.header("Access-Control-Allow-Headers", "Content-Type");
+    
+        try {
+            const userAddress = "0xb4b291607e91da4654cab88e5e35ba2921ef68f1b43725ef2faeae045bf5915d";
+            const rawData = await getFolderByUserAddress(userAddress);
+    
+            if (!rawData || typeof rawData === "string") {
+                throw new Error("No valid data found");
+            }
+    
+            const datapost = rawData.map((item) => {
+                const data = item.data;
+                if (Array.isArray(data)) {
+                    return data.map(i => i.text).filter(Boolean);
+                } else if (typeof data === "object" && data !== null) {
+                    return data.text ? [data.text] : [];
+                }
+                return [];
+            }).flat();
+    
+            if (datapost.length === 0) {
+                throw new Error("No valid text content found in the data");
+            }
+    
+            // **Tự động phát hiện danh mục dựa trên từ khóa xuất hiện**
+            const detectCategory = (post) => {
+                if (post.match(/\b(crypto|bitcoin|eth|nft|blockchain|web3|airdrop|token|memecoin|wallet|sui|solana)\b/i)) return "CRYPTO";
+                if (post.match(/\b(ai|ml|machine learning|neural|chatbot|grok|xai)\b/i)) return "ML_AI";
+                if (post.match(/\b(dev|code|protocol|extension|api|sdk|framework|smartcontract|dapp)\b/i)) return "DEVELOPMENT";
+                if (post.match(/\b(defi|finance|payment|trading|swap|yield|lending|staking)\b/i)) return "DEFI";
+                if (post.match(/\b(twitter|social|community|follow|rt|like|engagement)\b/i)) return "SOCIAL";
+                if (post.match(/\b(market|price|pump|dump|bull|bear|trend|season|altcoin)\b/i)) return "MARKET";
+                if (post.match(/\b(news|update|announcement|launch|release|progress)\b/i)) return "NEWS";
+                if (post.match(/\b(game|gaming|play|reward|naruto)\b/i)) return "GAMING";
+                if (post.match(/\b(event|hackathon|competition|prize|register|join)\b/i)) return "EVENTS";
+                return "Other"; // Nếu không xác định được danh mục
+            };
+    
+            // **Nhóm bài viết theo danh mục tự động**
+            const categorizedPosts = {};
+    
+            datapost.forEach((post, index) => {
+                const category = detectCategory(post);
+                if (!categorizedPosts[category]) {
+                    categorizedPosts[category] = [];
+                }
+                categorizedPosts[category].push({ id: index + 1, content: post });
+            });
+    
+            const result = Object.keys(categorizedPosts).map(category => {
+                const posts = categorizedPosts[category];
+                return {
+                    parentId: category,
+                    content: posts[0].content, 
+                    posts: posts.slice(1) 
+                };
+            });
+    
+            res.json(result);
+    
+        } catch (error) {
+            res.status(500).json({
+                error: error.message,
+                timestamp: new Date().toISOString()
+            });
+        }
+    });
+    
 
     router.get("/agents", (req, res) => {
         const agentsList = Array.from(agents.values()).map((agent) => ({
