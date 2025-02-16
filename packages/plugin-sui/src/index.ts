@@ -3,7 +3,7 @@ import transferToken from "./actions/transfer.ts";
 import { WalletProvider, walletProvider } from "./providers/wallet.ts";
 import { SuiService } from "./services/sui.ts";
 import swapToken from "./actions/swap.ts";
-import deposit from "./actions/suilend/deposit";
+import deposit from "./actions/suilend/deposit.ts";
 import getBalance from "./actions/suilend/get-balance.ts";
 import getToken from "./actions/suilend/get-token.ts";
 import getPortfolio from "./actions/suilend/get-portfolio.ts";
@@ -35,16 +35,16 @@ export const suiPlugin: Plugin = {
     name: "sui",
     description: "Sui Plugin for Eliza",
     actions: [
-        transferToken, 
-        swapToken, 
-        deposit, 
-        getBalance, 
-        getToken, 
-        getPortfolio, 
-        withdraw, 
-        repay, 
-        borrow, 
-        analyzeSentimentAction, 
+        transferToken,
+        swapToken,
+        deposit,
+        getBalance,
+        getToken,
+        getPortfolio,
+        withdraw,
+        repay,
+        borrow,
+        analyzeSentimentAction,
         chatData],
     evaluators: [],
     providers: [walletProvider],

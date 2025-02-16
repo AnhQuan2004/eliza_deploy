@@ -111,6 +111,7 @@ import { createNodePlugin } from "@elizaos/plugin-node";
 // import { stargazePlugin } from "@elizaos/plugin-stargaze";
 // import { storyPlugin } from "@elizaos/plugin-story";
 import { suiPlugin } from "@elizaos/plugin-sui";
+import { gmovePlugin } from "@elizaos/plugin-gmove";
 // import { TEEMode, teePlugin } from "@elizaos/plugin-tee";
 // import { teeLogPlugin } from "@elizaos/plugin-tee-log";
 // import { teeMarlinPlugin } from "@elizaos/plugin-tee-marlin";
@@ -1173,7 +1174,7 @@ export async function createAgent(
             // getSecret(character, "TON_PRIVATE_KEY") ? tonPlugin : null,
             // getSecret(character, "THIRDWEB_SECRET_KEY") ? thirdwebPlugin : null,
             // getSecret(character, "SUI_PRIVATE_KEY") ? suiPlugin : null,
-            suiPlugin
+            gmovePlugin,
             // getSecret(character, "STORY_PRIVATE_KEY") ? storyPlugin : null,
             // getSecret(character, "SQUID_SDK_URL") &&
             //     getSecret(character, "SQUID_INTEGRATOR_ID") &&

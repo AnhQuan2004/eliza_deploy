@@ -1,6 +1,6 @@
 {
-	"name": "@elizaos/client-direct",
-	"version": "0.1.9",
+	"name": "custom-elizaos-client-direct",
+	"version": "0.1.11",
 	"main": "dist/index.js",
 	"module": "dist/index.js",
 	"type": "module",
@@ -19,11 +19,7 @@
 		"dist"
 	],
 	"dependencies": {
-		"@elizaos/core": "workspace:*",
-		"@elizaos/plugin-image-generation": "workspace:*",
-		"@elizaos/plugin-tee-verifiable-log": "workspace:*",
-		"@elizaos/plugin-tee-log": "workspace:*",
-		"@elizaos/plugin-sui": "workspace:*",
+		"@elizaos/core": "0.1.9",
 		"@types/body-parser": "1.19.5",
 		"@types/cors": "2.8.17",
 		"@types/express": "5.0.0",
