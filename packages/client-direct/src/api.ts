@@ -4,6 +4,7 @@ import cors from "cors";
 import path from "path";
 import fs from "fs";
 import { getFolderByUserAddress } from "./tusky";
+import {getFilesByParentId} from "./tusky";
 
 import {
     type AgentRuntime,
@@ -86,19 +87,37 @@ export function createApiRouter(
         res.header("Access-Control-Allow-Headers", "Content-Type");
     
         try {
-            const userAddress = "0xb4b291607e91da4654cab88e5e35ba2921ef68f1b43725ef2faeae045bf5915d";
-            const rawData = await getFolderByUserAddress(userAddress);
-    
+            const parentId = req.query.parentId as string || "45c6c728-6e0d-4260-8c2e-1bb25d285874";
+            
+            let rawData;
+            const maxRetries = 3;
+            for (let i = 0; i < maxRetries; i++) {
+                try {
+                    rawData = await getFilesByParentId(parentId);
+                    break;
+                } catch (error) {
+                    if (i === maxRetries - 1) throw error;
+                    await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
+                }
+            }
+
             if (!rawData || typeof rawData === "string") {
-                throw new Error("No valid data found");
+                throw new Error('No valid data found');
             }
     
             const datapost = rawData.map((item) => {
                 const data = item.data;
                 if (Array.isArray(data)) {
-                    return data.map(i => i.text).filter(Boolean);
+                    return data.map(d => ({
+                        authorFullname: d.authorFullname || d.author || 'Unknown',
+                        content: d.text || d.msg || ''
+                    })).filter(p => p.content);
                 } else if (typeof data === "object" && data !== null) {
-                    return data.text ? [data.text] : [];
+                    const content = data.text || data.msg || '';
+                    return content ? [{
+                        authorFullname: data.authorFullname || data.author || 'Unknown',
+                        content
+                    }] : [];
                 }
                 return [];
             }).flat();
@@ -124,22 +143,20 @@ export function createApiRouter(
             // **Nhóm bài viết theo danh mục tự động**
             const categorizedPosts = {};
     
-            datapost.forEach((post, index) => {
-                const category = detectCategory(post);
+            datapost.forEach((post) => {
+                const category = detectCategory(post.content);
                 if (!categorizedPosts[category]) {
                     categorizedPosts[category] = [];
                 }
-                categorizedPosts[category].push({ id: index + 1, content: post });
+                categorizedPosts[category].push(post);
             });
     
-            const result = Object.keys(categorizedPosts).map(category => {
-                const posts = categorizedPosts[category];
-                return {
-                    parentId: category,
-                    content: posts[0].content, 
-                    posts: posts.slice(1) 
-                };
-            });
+            const result = Object.keys(categorizedPosts).map(category => ({
+                parentId: category,
+                content: categorizedPosts[category][0].content,
+                posts: categorizedPosts[category].slice(1),
+                authorFullname: categorizedPosts[category][0].authorFullname
+            }));
     
             res.json(result);
     
