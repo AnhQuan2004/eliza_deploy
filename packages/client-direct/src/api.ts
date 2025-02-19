@@ -16,10 +16,11 @@ import {
     type Character,
 } from "@elizaos/core";
 
-import type { TeeLogQuery, TeeLogService } from "@elizaos/plugin-tee-log";
+import { TeeLogService, type TeeLogQuery } from "@elizaos/plugin-tee-log";
 import { REST, Routes } from "discord.js";
 import type { DirectClient } from ".";
 import { validateUuid } from "@elizaos/core";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 interface UUIDParams {
     agentId: UUID;
@@ -50,6 +51,26 @@ function validateUUIDParams(
     }
 
     return { agentId };
+}
+
+async function callGemini(prompt: string) {
+    try {
+        const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GENERATIVE_AI_API_KEY || '');
+        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+        
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        const text = response.text();
+        
+        // Strip markdown and return raw text
+        return text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    } catch (error) {
+        console.error('Gemini API error:', error);
+        return { 
+            error: "Failed to get Gemini response",
+            details: error.message
+        };
+    }
 }
 
 export function createApiRouter(
@@ -87,78 +108,114 @@ export function createApiRouter(
         res.header("Access-Control-Allow-Headers", "Content-Type");
     
         try {
-            const parentId = req.query.parentId as string || "45c6c728-6e0d-4260-8c2e-1bb25d285874";
+            const parentId = String(req.query.parentId || "45c6c728-6e0d-4260-8c2e-1bb25d285874");
             
-            let rawData;
-            const maxRetries = 3;
-            for (let i = 0; i < maxRetries; i++) {
-                try {
-                    rawData = await getFilesByParentId(parentId);
-                    break;
-                } catch (error) {
-                    if (i === maxRetries - 1) throw error;
-                    await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
-                }
-            }
-
+            // 🔥 Lấy dữ liệu từ database
+            let rawData = await getFilesByParentId(parentId);
+    
             if (!rawData || typeof rawData === "string") {
                 throw new Error('No valid data found');
             }
     
-            const datapost = rawData.map((item) => {
-                const data = item.data;
-                if (Array.isArray(data)) {
-                    return data.map(d => ({
-                        authorFullname: d.authorFullname || d.author || 'Unknown',
-                        content: d.text || d.msg || ''
-                    })).filter(p => p.content);
-                } else if (typeof data === "object" && data !== null) {
-                    const content = data.text || data.msg || '';
-                    return content ? [{
-                        authorFullname: data.authorFullname || data.author || 'Unknown',
-                        content
-                    }] : [];
-                }
-                return [];
-            }).flat();
+            // 🔥 Chuyển dữ liệu về dạng chuẩn
+            const authorCounts = {};
+            const formattedData = rawData.flatMap(item => {
+                const dataArray = Array.isArray(item.data) ? item.data : [item.data];
+                return dataArray.map(tweet => {
+                    const author = tweet.authorFullname || "anonymous";
+                    authorCounts[author] = (authorCounts[author] || 0) + 1;
     
-            if (datapost.length === 0) {
-                throw new Error("No valid text content found in the data");
-            }
-    
-            // **Tự động phát hiện danh mục dựa trên từ khóa xuất hiện**
-            const detectCategory = (post) => {
-                if (post.match(/\b(crypto|bitcoin|eth|nft|blockchain|web3|airdrop|token|memecoin|wallet|sui|solana)\b/i)) return "CRYPTO";
-                if (post.match(/\b(ai|ml|machine learning|neural|chatbot|grok|xai)\b/i)) return "ML_AI";
-                if (post.match(/\b(dev|code|protocol|extension|api|sdk|framework|smartcontract|dapp)\b/i)) return "DEVELOPMENT";
-                if (post.match(/\b(defi|finance|payment|trading|swap|yield|lending|staking)\b/i)) return "DEFI";
-                if (post.match(/\b(twitter|social|community|follow|rt|like|engagement)\b/i)) return "SOCIAL";
-                if (post.match(/\b(market|price|pump|dump|bull|bear|trend|season|altcoin)\b/i)) return "MARKET";
-                if (post.match(/\b(news|update|announcement|launch|release|progress)\b/i)) return "NEWS";
-                if (post.match(/\b(game|gaming|play|reward|naruto)\b/i)) return "GAMING";
-                if (post.match(/\b(event|hackathon|competition|prize|register|join)\b/i)) return "EVENTS";
-                return "Other"; // Nếu không xác định được danh mục
-            };
-    
-            // **Nhóm bài viết theo danh mục tự động**
-            const categorizedPosts = {};
-    
-            datapost.forEach((post) => {
-                const category = detectCategory(post.content);
-                if (!categorizedPosts[category]) {
-                    categorizedPosts[category] = [];
-                }
-                categorizedPosts[category].push(post);
+                    return {
+                        id: `${author}_${authorCounts[author]}`,
+                        authorFullname: author,
+                        text: tweet.text,
+                        url: tweet.url
+                    };
+                });
             });
     
-            const result = Object.keys(categorizedPosts).map(category => ({
-                parentId: category,
-                content: categorizedPosts[category][0].content,
-                posts: categorizedPosts[category].slice(1),
-                authorFullname: categorizedPosts[category][0].authorFullname
-            }));
+            // 🔥 Xây dựng prompt AI
+            const aiPrompt = `
+🔹 🔹 **Mục tiêu**
+- Chuyển danh sách bài đăng thành một mạng lưới gồm **nodes** (bài đăng, từ khóa quan trọng) và **edges** (mối quan hệ giữa chúng).
+- **Hashtags (#)** và **mentions (@)** chỉ được thêm vào danh sách keywords **nếu có nhiều bài đăng liên quan**.
+
+🔹 **Bước 1: Xử lý văn bản bài đăng**
+- Loại bỏ **URL** (ví dụ: "https://example.com").
+- Tách các **hashtags (#hashtag)** và **mentions (@username)**.
+- Loại bỏ ký tự đặc biệt **(trừ @ và #)**.
+- Chuyển toàn bộ chữ thành **chữ thường**.
+- **Bỏ qua bài đăng** nếu có ít hơn 5 từ.
+
+🔹 **Bước 2: Trích xuất từ khóa & hashtags**
+- **Chỉ giữ lại hashtags & mentions nếu xuất hiện trong từ 2 bài đăng trở lên**.
+- Bỏ hashtags & mentions nếu chỉ xuất hiện 1 lần.
+- Giữ lại **các từ khóa quan trọng** như **"blockchain", "zk-proof", "KYC", "DeFi", "wallet"**.
+
+🔹 **Bước 3: Xây dựng đồ thị**
+- **Nodes (nút):**
+  - Mỗi bài đăng là một node:
+    \`{ "id": "Movement_1", "type": "post" }\`
+  - Mỗi từ khóa quan trọng **(bao gồm các hashtags/mentions phổ biến)** là một node:
+    \`{ "id": "#defi", "type": "keyword" }\`
+    \`{ "id": "@elonmusk", "type": "keyword" }\`
+
+- **Edges (cạnh):**
+  - Kết nối bài đăng với từ khóa.
+  - Kết nối bài đăng nếu có chung hashtag hoặc mention xuất hiện **trong ít nhất 2 bài**.
+  - Ví dụ:
+    \`{ "source": "Movement_1", "target": "#defi" }\`
+    \`{ "source": "Movement_1", "target": "rushi_2" }\` (nếu cả hai có cùng hashtag)
+
+🔹 **Dữ liệu đầu vào (JSON)**
+Dưới đây là danh sách bài đăng:
+${JSON.stringify(formattedData, null, 2)}
+
+🔹 **Dữ liệu đầu ra mong muốn**
+- Trả về JSON với **nodes** và **edges** theo format sau:
+\`\`\`json
+{
+   "nodes": [
+        { "id": "Movement_1", "type": "post" },
+        { "id": "#defi", "type": "keyword" },
+        { "id": "@elonmusk", "type": "keyword" }
+   ],
+   "edges": [
+        { "source": "Movement_1", "target": "#defi" },
+        { "source": "Movement_1", "target": "@elonmusk" },
+        { "source": "rushi_2", "target": "#defi" }
+   ]
+}
+\`\`\`
+- **Chỉ trả về JSON**, không có văn bản thừa.
+- Giữ định dạng JSON chuẩn để có thể lưu vào file và sử dụng trực tiếp.
+`;
     
-            res.json(result);
+            // 🔥 Gọi Gemini API
+            const aiResponse = await callGemini(aiPrompt);
+    
+            if (typeof aiResponse === 'string') {
+                const graphData = JSON.parse(aiResponse);
+                
+                // Map content and url to post nodes
+                const contentMap = formattedData.reduce((map, item) => {
+                    map[item.id] = {
+                        text: item.text || "",
+                        url: item.url || ""
+                    };
+                    return map;
+                }, {});
+
+                graphData.nodes = graphData.nodes.map(node => ({
+                    ...node,
+                    content: node.type === "post" ? contentMap[node.id]?.text : undefined,
+                    url: node.type === "post" ? contentMap[node.id]?.url : undefined
+                }));
+
+                res.json(graphData);
+            } else {
+                throw new Error(aiResponse.error);
+            }
     
         } catch (error) {
             res.status(500).json({
@@ -409,8 +466,7 @@ export function createApiRouter(
 
             for (const agentRuntime of agents.values()) {
                 const teeLogService = agentRuntime
-                    .getService<TeeLogService>(ServiceType.TEE_LOG)
-                    .getInstance();
+                    .getService(ServiceType.TEE_LOG) as InstanceType<typeof TeeLogService>;
 
                 const agents = await teeLogService.getAllAgents();
                 allAgents.push(...agents);
@@ -418,8 +474,7 @@ export function createApiRouter(
 
             const runtime: AgentRuntime = agents.values().next().value;
             const teeLogService = runtime
-                .getService<TeeLogService>(ServiceType.TEE_LOG)
-                .getInstance();
+                .getService(ServiceType.TEE_LOG) as InstanceType<typeof TeeLogService>;
             const attestation = await teeLogService.generateAttestation(
                 JSON.stringify(allAgents)
             );
@@ -442,8 +497,7 @@ export function createApiRouter(
             }
 
             const teeLogService = agentRuntime
-                .getService<TeeLogService>(ServiceType.TEE_LOG)
-                .getInstance();
+                .getService(ServiceType.TEE_LOG) as InstanceType<typeof TeeLogService>;
 
             const teeAgent = await teeLogService.getAgent(agentId);
             const attestation = await teeLogService.generateAttestation(
@@ -477,8 +531,7 @@ export function createApiRouter(
                 };
                 const agentRuntime: AgentRuntime = agents.values().next().value;
                 const teeLogService = agentRuntime
-                    .getService<TeeLogService>(ServiceType.TEE_LOG)
-                    .getInstance();
+                    .getService(ServiceType.TEE_LOG) as InstanceType<typeof TeeLogService>;
                 const pageQuery = await teeLogService.getLogs(
                     teeLogQuery,
                     page,
