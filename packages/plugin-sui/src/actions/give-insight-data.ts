@@ -1,3 +1,253 @@
+// import { OpenAIEmbeddings } from '@langchain/openai';
+// import { Action, ActionExample, Memory, IAgentRuntime, State, HandlerCallback, generateText, ModelClass, elizaLogger, RAGKnowledgeItem } from "@elizaos/core";
+// import { analyzePostPrompt } from "./prompts";
+// import { ChatDataAction } from "./enum";
+// import * as fs from 'fs/promises';
+// import * as path from 'path';
+// import { getFolderByUserAddress } from '../services/tusky';
+// import {getFilesByParentId} from '../services/tusky';
+
+// // Utility function to write logs to file
+// async function writeToLog(message: string) {
+//     const timestamp = new Date().toISOString();
+//     const logMessage = `[${timestamp}] ${message}\n`;
+//     try {
+//         await fs.appendFile('log.txt', logMessage);
+//     } catch (error) {
+//         console.error('Error writing to log file:', error);
+//     }
+// }
+
+// export interface DataItem {
+//     authorFullname: string;
+//     text: string;
+// }
+
+// interface ProcessedPost {
+//     authorFullname: string;
+//     text: string;
+//     embedding?: number[];
+// }
+
+// const cosineSimilarity = (vecA: number[], vecB: number[]): number => {
+//     const dotProduct = vecA.reduce((sum, val, index) => sum + val * vecB[index], 0);
+//     const magnitudeA = Math.sqrt(vecA.reduce((sum, val) => sum + val * val, 0));
+//     const magnitudeB = Math.sqrt(vecB.reduce((sum, val) => sum + val * val, 0));
+//     return dotProduct / (magnitudeA * magnitudeB);
+// };
+
+// const groupPostsById = (posts: DataItem[]): ProcessedPost[] => {
+//     const groupedPosts = new Map<string, string[]>();
+
+//     // Group all texts by authorFullname
+//     posts.forEach(post => {
+//         if (!groupedPosts.has(post.authorFullname)) {
+//             groupedPosts.set(post.authorFullname, []);
+//         }
+//         // Ensure we are pushing the text content correctly
+//         if (post.text && post.text.length > 0) {
+//             groupedPosts.get(post.authorFullname)!.push(post.text);
+//         }
+//     });
+
+//     // Convert grouped posts to final format: list of authors with their combined text
+//     return Array.from(groupedPosts.entries()).map(([authorFullname, texts]) => ({
+//         authorFullname,
+//         // Join texts with a clear separator
+//         text: texts.join('\n\n---\n\n') // Add separator between posts of the same author
+//     }));
+// };
+// const embedDocumentsOptimized = async (texts: string[]) => {
+//     // Create embedding for a group of posts instead of individual posts
+//     const embeddings = new OpenAIEmbeddings({
+//         apiKey: process.env.OPENAI_API_KEY,
+//     });
+
+//     // Embedding for grouped posts (text array)
+//     return await embeddings.embedDocuments(texts);
+// };
+
+// // Cải thiện việc lọc các bài viết có độ dài lớn
+// const filterLongPosts = (posts: DataItem[], minLength: number = 100): DataItem[] => {
+//     return posts.filter(post => post.text.length >= minLength); // Filter out posts with short length
+// };
+
+
+// const calculateSimilarity = (
+//     postEmbedding: number[], 
+//     queryEmbedding: number[], 
+//     postText: string, 
+//     query: string
+// ): number => {
+//     // Base semantic similarity
+//     const similarity = cosineSimilarity(postEmbedding, queryEmbedding);
+    
+//     // Convert to lowercase for case-insensitive matching
+//     const postLower = postText.toLowerCase();
+//     const queryLower = query.toLowerCase();
+    
+//     // Exact phrase matching boost
+//     const phraseBoost = postLower.includes(queryLower) ? 0.2 : 0;
+    
+//     // Individual terms matching boost
+//     const queryTerms = queryLower.split(' ').filter(term => term.length > 2);
+//     const termBoost = queryTerms.reduce((boost, term) => {
+//         return boost + (postLower.includes(term) ? 0.1 : 0);
+//     }, 0);
+    
+//     return similarity + phraseBoost + termBoost;
+// };
+
+// export default {
+//     name: "DATA_INSIGHT",
+//     similes: [
+//         "insight data", "what is the data", "show me the data purpose",
+//         "give me insights", "data insight"
+//     ],
+//     description: "Insight data from all collected data",
+
+//     validate: async (runtime: IAgentRuntime, message: Memory) => {
+//         return message.content?.text?.length > 0;
+//     },
+
+//     handler: async (
+//         runtime: IAgentRuntime,
+//         message: Memory,
+//         state: State,
+//         options: {
+//             userAddress?: string;
+//             [key: string]: unknown
+//         },
+//         callback?: HandlerCallback
+//     ) => {
+//         try {
+//             await writeToLog("Starting DATA_INSIGHT analysis...");
+
+//             const parentId = (options.parentId as string) || "45c6c728-6e0d-4260-8c2e-1bb25d285874";
+            
+//             let rawData;
+//             const maxRetries = 3;
+//             for (let i = 0; i < maxRetries; i++) {
+//                 try {
+//                     rawData = await getFilesByParentId(parentId);
+//                     break;
+//                 } catch (error) {
+//                     if (i === maxRetries - 1) throw error;
+//                     await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1))); // Exponential backoff
+//                 }
+//             }
+
+//             if (!rawData || typeof rawData === "string") {
+//                 throw new Error('No valid data found');
+//             }
+
+//             // Extract author name from query if it exists
+//             const query = message.content.text.toLowerCase();
+            
+//             // Process and group the raw data
+//             const processedPosts = rawData.map((item: any) => {
+//                 const data = item.data;
+//                 const items = Array.isArray(data) ? data : [data];
+//                 return items.map(d => {
+//                     const combinedText = `${d.authorFullname}: ${d.text || ''}`;
+//                     return {
+//                         authorFullname: d.authorFullname || 'Unknown',
+//                         text: combinedText
+//                     };
+//                 });
+//             }).flat().filter(post => post.text && post.text.length > 0);
+
+//             console.log('Processed posts:', JSON.stringify(processedPosts, null, 2));
+//             await writeToLog(`Processed posts: ${JSON.stringify(processedPosts, null, 2)}`);
+//             await writeToLog(`Found ${processedPosts.length} posts`);
+
+
+//             // Filter long posts (Optional: Adjust minLength to suit your needs)
+//             const filteredPosts = filterLongPosts(processedPosts, 150); // Remove posts shorter than 150 characters
+
+//             await writeToLog(`Filtered ${processedPosts.length - filteredPosts.length} posts`);
+
+//             // Group posts by author
+//             const groupedPosts = groupPostsById(filteredPosts);
+//             console.log('Grouped posts:', JSON.stringify(groupedPosts, null, 2));
+//             await writeToLog(`Grouped ${groupedPosts.length} posts`);
+            
+//             // Create embeddings for grouped posts
+//             const postEmbeddings = await embedDocumentsOptimized(groupedPosts.map(post => post.text));
+
+//             // Create embedding for the query
+//             const queryEmbedding = await embedDocumentsOptimized([message.content.text]);
+            
+
+//             // Calculate similarities and rank posts
+//             const rankedPosts = groupedPosts.map((post, index) => ({
+//                 ...post,
+//                 similarity: calculateSimilarity(postEmbeddings[index], queryEmbedding[0], post.text, message.content.text)
+//             }))
+//             .sort((a, b) => b.similarity - a.similarity)
+//             .slice(0, 3);  // Get top 3 most relevant posts
+
+//             const context = rankedPosts.map(post => post.text).join('\n\n');
+//             const response = await generateText({
+//                 runtime,
+//                 context: analyzePostPrompt(message.content.text, context),
+//                 modelClass: ModelClass.MEDIUM,
+//                 stop: ["\n"],
+//             });
+
+//             // Send response back to callback
+//             callback?.({
+//                 text: response.trim(),
+//                 action: ChatDataAction.INSIGHT_DATA,
+//                 params: {
+//                     label: response.trim(),
+//                     relevantPosts: rankedPosts.map(post => ({
+//                         authorFullname: post.authorFullname,
+//                         text: post.text,
+//                         similarity: post.similarity
+//                     }))
+//                 }
+//             });
+
+//         } catch (error) {
+//             await writeToLog(`Error in data analysis: ${error.message}\n${error.stack}`);
+//             throw error;
+//         }
+//     },
+
+//     examples: [
+//         [
+//             {
+//                 user: "{{user1}}",
+//                 content: {
+//                     text: "What is the trend in crypto posts?"
+//                 }
+//             },
+//             {
+//                 user: "{{user2}}",
+//                 content: {
+//                     text: "Recent posts show strong focus on Bitcoin ETF approval and institutional adoption."
+//                 }
+//             }
+//         ],
+//         [
+//             {
+//                 user: "{{user1}}",
+//                 content: {
+//                     text: "Show me the data insights"
+//                 }
+//             },
+//             {
+//                 user: "{{user2}}",
+//                 content: {
+//                     text: "The posts discuss various crypto topics including BTC price, ETH ecosystem, and NFT markets."
+//                 }
+//             }
+//         ]
+//     ] as ActionExample[][]
+// };
+
+
 import { OpenAIEmbeddings } from '@langchain/openai';
 import { Action, ActionExample, Memory, IAgentRuntime, State, HandlerCallback, generateText, ModelClass, elizaLogger, RAGKnowledgeItem } from "@elizaos/core";
 import { analyzePostPrompt } from "./prompts";
@@ -5,6 +255,7 @@ import { ChatDataAction } from "./enum";
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { getFolderByUserAddress } from '../services/tusky';
+import { getFilesByParentId } from '../services/tusky';
 
 // Utility function to write logs to file
 async function writeToLog(message: string) {
@@ -18,13 +269,16 @@ async function writeToLog(message: string) {
 }
 
 export interface DataItem {
-    id: string;
+    authorFullname: string;
     text: string;
+    timestamp?: string; // Optional timestamp for recency boost
 }
 
 interface ProcessedPost {
-    id: string;
+    authorFullname: string;
     text: string;
+    originalTexts: string[]; // Store original texts separately
+    timestamp?: string;
     embedding?: number[];
 }
 
@@ -36,55 +290,86 @@ const cosineSimilarity = (vecA: number[], vecB: number[]): number => {
 };
 
 const groupPostsById = (posts: DataItem[]): ProcessedPost[] => {
-    const groupedPosts = new Map<string, string[]>();
+    const groupedPosts = new Map<string, { texts: string[], timestamps: string[] }>();
     
-    // Group all texts by ID
+    // Group all texts and timestamps by authorFullname
     posts.forEach(post => {
-        if (!groupedPosts.has(post.id)) {
-            groupedPosts.set(post.id, []);
+        if (!groupedPosts.has(post.authorFullname)) {
+            groupedPosts.set(post.authorFullname, { texts: [], timestamps: [] });
         }
-        if (post.text) {
-            groupedPosts.get(post.id)!.push(post.text);
+        const group = groupedPosts.get(post.authorFullname)!;
+        if (post.text && post.text.length > 0) {
+            group.texts.push(post.text);
+            group.timestamps.push(post.timestamp || '');
         }
     });
 
     // Convert grouped posts to final format
-    return Array.from(groupedPosts.entries()).map(([id, texts]) => ({
-        id,
-        text: texts.join('\n')
+    return Array.from(groupedPosts.entries()).map(([authorFullname, group]) => ({
+        authorFullname,
+        text: `Author: ${authorFullname}\nPosts:\n${group.texts.map((t, i) => `[${i + 1}] ${t}`).join('\n\n')}`,
+        originalTexts: group.texts,
+        timestamp: group.timestamps[group.timestamps.length - 1] // Use most recent timestamp
     }));
+};
+
+const embedDocumentsOptimized = async (texts: string[]) => {
+    const embeddings = new OpenAIEmbeddings({
+        apiKey: process.env.OPENAI_API_KEY,
+    });
+    return await embeddings.embedDocuments(texts);
+};
+
+const filterLongPosts = (posts: DataItem[], minLength: number = 50): DataItem[] => {
+    return posts.filter(post => post.text.length >= minLength);
 };
 
 const calculateSimilarity = (
     postEmbedding: number[], 
     queryEmbedding: number[], 
-    postText: string, 
+    post: ProcessedPost,
     query: string
 ): number => {
     // Base semantic similarity
     const similarity = cosineSimilarity(postEmbedding, queryEmbedding);
     
     // Convert to lowercase for case-insensitive matching
-    const postLower = postText.toLowerCase();
+    const postLower = post.text.toLowerCase();
     const queryLower = query.toLowerCase();
+    const authorLower = post.authorFullname.toLowerCase();
     
     // Exact phrase matching boost
-    const phraseBoost = postLower.includes(queryLower) ? 0.2 : 0;
+    const phraseBoost = post.originalTexts.some(text => 
+        text.toLowerCase().includes(queryLower)
+    ) ? 0.2 : 0;
+    
+    // Author matching boost
+    const authorBoost = queryLower.includes(authorLower) ? 0.3 : 0;
     
     // Individual terms matching boost
     const queryTerms = queryLower.split(' ').filter(term => term.length > 2);
     const termBoost = queryTerms.reduce((boost, term) => {
         return boost + (postLower.includes(term) ? 0.1 : 0);
     }, 0);
+
+    // Recency boost if timestamp is available
+    const recencyBoost = post.timestamp ? calculateRecencyBoost(post.timestamp) : 0;
     
-    return similarity + phraseBoost + termBoost;
+    return similarity + phraseBoost + termBoost + authorBoost + recencyBoost;
+};
+
+const calculateRecencyBoost = (timestamp: string): number => {
+    const postDate = new Date(timestamp);
+    const now = new Date();
+    const daysDifference = (now.getTime() - postDate.getTime()) / (1000 * 60 * 60 * 24);
+    return Math.max(0, 0.2 * (1 - daysDifference / 30)); // 0.2 boost for very recent posts, decreasing over 30 days
 };
 
 export default {
     name: "DATA_INSIGHT",
     similes: [
         "insight data", "what is the data", "show me the data purpose",
-        "give me insights", "data insight"
+        "give me insights", "data insight", "what is author post", "give me author post", "what post about", "what post about author"
     ],
     description: "Insight data from all collected data",
 
@@ -105,67 +390,77 @@ export default {
         try {
             await writeToLog("Starting DATA_INSIGHT analysis...");
 
-            const userAddress = options.userAddress || "0xb4b291607e91da4654cab88e5e35ba2921ef68f1b43725ef2faeae045bf5915d";
-            const rawData = await getFolderByUserAddress(userAddress);
+            const parentId = (options.parentId as string) || "45c6c728-6e0d-4260-8c2e-1bb25d285874";
+            
+            let rawData;
+            const maxRetries = 3;
+            for (let i = 0; i < maxRetries; i++) {
+                try {
+                    rawData = await getFilesByParentId(parentId);
+                    await writeToLog(`Successfully retrieved data on attempt ${i + 1}`);
+                    break;
+                } catch (error) {
+                    await writeToLog(`Failed attempt ${i + 1} to get data: ${error.message}`);
+                    if (i === maxRetries - 1) throw error;
+                    await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
+                }
+            }
 
             if (!rawData || typeof rawData === "string") {
+                await writeToLog('No valid data found');
                 throw new Error('No valid data found');
             }
 
-            // Process and group the raw data
+            // Process raw data into structured format
             const processedPosts = rawData.map((item: any) => {
                 const data = item.data;
-                if (Array.isArray(data)) {
-                    return data.map(d => ({
-                        id: item.id,
-                        text: d.text || d.msg || ''
-                    }));
-                } else if (typeof data === 'object' && data !== null) {
-                    return [{
-                        id: item.id,
-                        text: data.text || data.msg || ''
-                    }];
-                }
-                return [];
+                const items = Array.isArray(data) ? data : [data];
+                return items.map(d => ({
+                    authorFullname: d.authorFullname || 'Unknown',
+                    text: d.text || '',
+                    timestamp: d.timestamp || item.timestamp || new Date().toISOString()
+                }));
             }).flat().filter(post => post.text && post.text.length > 0);
 
+            // Filter and group posts
+            const filteredPosts = filterLongPosts(processedPosts);
+            const groupedPosts = groupPostsById(filteredPosts);
+
+            // Log processing steps
             await writeToLog(`Processed ${processedPosts.length} posts`);
+            await writeToLog(`Filtered to ${filteredPosts.length} posts`);
+            await writeToLog(`Grouped into ${groupedPosts.length} author groups`);
 
-            // Group posts by ID
-            const groupedPosts = groupPostsById(processedPosts);
-            await writeToLog(`Grouped into ${groupedPosts.length} unique posts`);
-
-            if (groupedPosts.length === 0) {
-                throw new Error('No valid content found after processing');
-            }
-
-            // Initialize OpenAI Embeddings
-            const embeddings = new OpenAIEmbeddings({
-                apiKey: process.env.OPENAI_API_KEY,
-            });
-
-            // Create embeddings for posts
-            const postEmbeddings = await embeddings.embedDocuments(
+            // Create embeddings
+            await writeToLog("Starting embeddings generation...");
+            const postEmbeddings = await embedDocumentsOptimized(
                 groupedPosts.map(post => post.text)
             );
+            await writeToLog("Completed post embeddings generation");
 
-            // Create embedding for query
-            const queryEmbedding = await embeddings.embedDocuments([message.content.text]);
+            // Create query embedding including author context if available
+            const queryText = `${message.content.text} ${(message.content as any).authorFullname || ''}`;
+            await writeToLog("Starting query embedding generation...");
+            const queryEmbedding = await embedDocumentsOptimized([queryText]);
+            await writeToLog("Completed query embedding generation");
 
-            // Calculate similarities and rank posts
+            // Rank posts
+            await writeToLog("Starting post ranking...");
             const rankedPosts = groupedPosts.map((post, index) => ({
                 ...post,
                 similarity: calculateSimilarity(
                     postEmbeddings[index],
                     queryEmbedding[0],
-                    post.text,
+                    post,
                     message.content.text
                 )
             }))
             .sort((a, b) => b.similarity - a.similarity)
-            .slice(0, 3);  // Get top 3 most relevant posts
+            .slice(0, 3);
+            await writeToLog(`Ranked posts and selected top ${rankedPosts.length}`);
 
-            // Generate comprehensive response using top posts
+            // Generate response
+            await writeToLog("Generating text response...");
             const context = rankedPosts.map(post => post.text).join('\n\n');
             const response = await generateText({
                 runtime,
@@ -173,19 +468,23 @@ export default {
                 modelClass: ModelClass.MEDIUM,
                 stop: ["\n"],
             });
+            await writeToLog("Completed text response generation");
 
+            // Send response
+            await writeToLog("Sending response to callback...");
             callback?.({
                 text: response.trim(),
                 action: ChatDataAction.INSIGHT_DATA,
                 params: {
                     label: response.trim(),
                     relevantPosts: rankedPosts.map(post => ({
-                        id: post.id,
+                        authorFullname: post.authorFullname,
                         text: post.text,
                         similarity: post.similarity
                     }))
                 }
             });
+            await writeToLog("DATA_INSIGHT analysis completed successfully");
 
         } catch (error) {
             await writeToLog(`Error in data analysis: ${error.message}\n${error.stack}`);

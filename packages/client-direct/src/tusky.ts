@@ -88,6 +88,36 @@ export async function getFolderByUserAddress(userAddress: string) {
     return data;
 }
 
+export async function getFilesByParentId(parentId: string) {
+  if (!TUS_API_URL || !TUS_API_KEY) {
+    throw new Error("TUS_API_URL or TUSKY_API_KEY is not set");
+  }
+
+  const response = await fetch(
+    `${TUS_API_URL}/files?vaultId=${DEFAULT_VAULT}&parentId=${parentId}`,
+    {
+      method: "GET",
+      headers: {
+        "Api-Key": TUS_API_KEY,
+      },
+    }
+  ).then((response) => response.json());
+
+  const data = await Promise.all(
+    response.items.map(async (item: any) => {
+      const file = await getDataByID(item.id);
+      return {
+        ...item,
+        data: file,
+      };
+    })
+  );
+
+  return data;
+}
+
+
+
 // create vault to store files, Vaults in Tusky are secure storage containers for files.
 export async function createVault(vaultName: string) {
     try {

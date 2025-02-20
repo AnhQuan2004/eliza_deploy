@@ -1023,12 +1023,18 @@ importers:
       '@elizaos/plugin-image-generation':
         specifier: workspace:*
         version: link:../plugin-image-generation
+      '@elizaos/plugin-sui':
+        specifier: workspace:*
+        version: link:../plugin-sui
       '@elizaos/plugin-tee-log':
         specifier: workspace:*
         version: link:../plugin-tee-log
       '@elizaos/plugin-tee-verifiable-log':
         specifier: workspace:*
         version: link:../plugin-tee-verifiable-log
+      '@google/generative-ai':
+        specifier: ^0.21.0
+        version: 0.21.0
       '@types/body-parser':
         specifier: 1.19.5
         version: 1.19.5
@@ -8700,6 +8706,10 @@ packages:
 
   '@google-cloud/vertexai@1.9.2':
     resolution: {integrity: sha512-pJSUG3r5QIvCFNfkz7/y7kEqvEJaVAk0jZbZoKbcPCRUnXaUeAq7p8I0oklqetGyxbUcZ2FOGpt+Y+4uIltVPg==}
+    engines: {node: '>=18.0.0'}
+
+  '@google/generative-ai@0.21.0':
+    resolution: {integrity: sha512-7XhUbtnlkSEZK15kN3t+tzIMxsbKm/dSkKBFalj+20NvPKe1kBY7mR2P7vuijEn+f06z5+A8bVGKO0v39cr6Wg==}
     engines: {node: '>=18.0.0'}
 
   '@google/model-viewer@2.1.1':
@@ -35453,6 +35463,8 @@ snapshots:
     transitivePeerDependencies:
       - encoding
       - supports-color
+
+  '@google/generative-ai@0.21.0': {}
 
   '@google/model-viewer@2.1.1':
     dependencies:
@@ -65636,7 +65648,7 @@ snapshots:
       cac: 6.7.14
       chokidar: 4.0.3
       consola: 3.4.0
-      debug: 4.4.0(supports-color@8.1.1)
+      debug: 4.4.0
       esbuild: 0.24.2
       joycon: 3.1.1
       picocolors: 1.1.1
