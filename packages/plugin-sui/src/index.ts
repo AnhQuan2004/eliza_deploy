@@ -12,6 +12,7 @@ import repay from "./actions/suilend/repay.ts";
 import borrow from "./actions/suilend/borrow.ts";
 import analyzeSentimentAction from "./actions/analyze-sentiment.ts";
 import chatData from "./actions/give-insight-data.ts";
+import labelData from "./actions/label-data.ts";
 // Export all actions
 export {
     transferToken,
@@ -24,7 +25,8 @@ export {
     repay,
     borrow,
     analyzeSentimentAction,
-    chatData
+    chatData,
+    labelData
 };
 
 // Export providers and services
@@ -45,7 +47,9 @@ export const suiPlugin: Plugin = {
         repay, 
         borrow, 
         analyzeSentimentAction, 
-        chatData],
+        chatData,
+        labelData
+    ],
     evaluators: [],
     providers: [walletProvider],
     services: [new SuiService()],

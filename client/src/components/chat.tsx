@@ -188,21 +188,21 @@ export default function Page({ agentId }: { agentId: UUID }) {
     });
 
     // Label data
-    const { data: labelData } = useQuery({
-        queryKey: ["label-data"],
-        queryFn: async () => {
-            const response = await fetch("http://localhost:3000/label", {
-                method: "GET",
-                headers: {
-                    "Content-Type": "application/json"
-                }
-            });
-            if (!response.ok) {
-                throw new Error("Network response was not ok");
-            }
-            return response.json();
-        }
-    });
+    // const { data: labelData } = useQuery({
+    //     queryKey: ["label-data"],
+    //     queryFn: async () => {
+    //         const response = await fetch("http://localhost:3000/label", {
+    //             method: "GET",
+    //             headers: {
+    //                 "Content-Type": "application/json"
+    //             }
+    //         });
+    //         if (!response.ok) {
+    //             throw new Error("Network response was not ok");
+    //         }
+    //         return response.json();
+    //     }
+    // });
     
     useEffect(() => {
         if (categoryData) {
@@ -212,12 +212,12 @@ export default function Page({ agentId }: { agentId: UUID }) {
     }, [categoryData]);
 
     // Use labelData to log or process it
-    useEffect(() => {
-        if (labelData) {
-            console.log("Label Data:", labelData);
-            // You can process or display labelData here if needed
-        }
-    }, [labelData]);
+    // useEffect(() => {
+    //     if (labelData) {
+    //         console.log("Label Data:", labelData);
+    //         // You can process or display labelData here if needed
+    //     }
+    // }, [labelData]);
 
     return (
         <div className="flex flex-col w-full h-[calc(100dvh)] p-4">

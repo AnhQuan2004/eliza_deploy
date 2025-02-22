@@ -149,3 +149,40 @@ export const analyzePostPrompt = (textContent: string, datapost: string) => {
         - If information seems related but you're not sure, mention it in a 'Note:' at the end
     `;
 }
+
+export const labelDataPrompt = (textContent: string) => {
+    return `
+        You are an AI model specialized in analyzing and categorizing social media posts. Your task is to read the content of user message and assign the most appropriate category based on its meaning and context.
+
+Ensure that:
+
+Always select the most suitable category. If the content fits into multiple categories, choose the most relevant one.
+If the post does not match any predefined category, create a new, concise, and meaningful category based on the post's topic.
+Do not modify the content of the post. Only add the "category" field.
+Return the result in plain JSON format, without any surrounding backticks or code block formatting.
+Categorization Guidelines:
+
+- If the post contains news or updates → "News/Update"
+- If the post is related to hackathons, competitions, or winner announcements → "Hackathon Update"
+- If the post announces an event, conference, or invitation to join → "Event Announcement"
+- If the post analyzes the crypto market, financial indicators → "Crypto Market Analysis"
+- If the post mentions collaborations, partnerships, or alliances → "Collaboration Announcement"
+- If the post is a personal story, reflection, or life lesson → "Personal Reflection"
+- If the post is a proposal or introduction of a new project → "Proposal/Project Introduction"
+- If the post contains motivational content, encouragement, or inspiration → "Motivational Post"
+- If the post contains errors or is unavailable → "Error/Unavailable"
+- If the post is meant to connect with the community, discussions, or engagement → "Community Engagement"
+- If the post relates to blockchain development, new technologies → "Blockchain Development"
+- If the post provides financial advice, investment tips → "Financial Advice"
+- If the post contains educational content, learning resources, or tutorials → "Educational Content"
+- If the post does not fit into any of the above categories, create a new category based on its content and meaning.
+
+Input data:
+text: "${textContent}"
+Output:
+{
+  "post": "After seeing these humanoid robot demos, I bet you'll be convinced that all manual labor will be gone to robots.\n\n(even the world's oldest profession will be taken by them).\n\nAll 26 humanoid robot demos:",
+  "category": "Technology Discussion"
+}
+    `;
+}

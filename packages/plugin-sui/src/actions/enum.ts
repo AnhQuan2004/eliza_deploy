@@ -23,3 +23,7 @@ export enum ChatDataAction {
     RAW_DATA = "RAW_DATA",
     ERROR = "ERROR"
 }
+
+export enum LabelDataAction {
+    LABEL_DATA = "LABEL_DATA",
+}

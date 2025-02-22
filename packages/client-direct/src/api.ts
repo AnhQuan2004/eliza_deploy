@@ -224,116 +224,116 @@ ${JSON.stringify(formattedData, null, 2)}
             });
         }
     });
-    router.get("/label", async (req, res) => {
-        res.header("Access-Control-Allow-Origin", "*");
-        res.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-        res.header("Access-Control-Allow-Headers", "Content-Type");
+//     router.get("/label", async (req, res) => {
+//         res.header("Access-Control-Allow-Origin", "*");
+//         res.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+//         res.header("Access-Control-Allow-Headers", "Content-Type");
     
-        try {
-            const parentId = String(req.query.parentId || "45c6c728-6e0d-4260-8c2e-1bb25d285874");
+//         try {
+//             const parentId = String(req.query.parentId || "45c6c728-6e0d-4260-8c2e-1bb25d285874");
             
-            // 🔥 Lấy dữ liệu từ database
-            let rawData = await getFilesByParentId(parentId);
+//             // 🔥 Lấy dữ liệu từ database
+//             let rawData = await getFilesByParentId(parentId);
     
-            if (!rawData || typeof rawData === "string") {
-                throw new Error('No valid data found');
-            }
+//             if (!rawData || typeof rawData === "string") {
+//                 throw new Error('No valid data found');
+//             }
     
-            // 🔥 Chuyển dữ liệu về dạng chuẩn
-            const authorCounts = {};
-            const formattedData = rawData.flatMap(item => {
-                const dataArray = Array.isArray(item.data) ? item.data : [item.data];
-                return dataArray.map(tweet => {
-                    const author = tweet.authorFullname || "anonymous";
-                    authorCounts[author] = (authorCounts[author] || 0) + 1;
+//             // 🔥 Chuyển dữ liệu về dạng chuẩn
+//             const authorCounts = {};
+//             const formattedData = rawData.flatMap(item => {
+//                 const dataArray = Array.isArray(item.data) ? item.data : [item.data];
+//                 return dataArray.map(tweet => {
+//                     const author = tweet.authorFullname || "anonymous";
+//                     authorCounts[author] = (authorCounts[author] || 0) + 1;
     
-                    return {
-                        id: `${author}_${authorCounts[author]}`,
-                        text: tweet.text,
-                        authorFullname: tweet.authorFullname,
-                        authorUsername: tweet.authorUsername,
-                        authorImg: tweet.authorImg,
-                        createdAt: tweet.createdAt,
-                        url: tweet.url,
-                    };
-                });
-            });
+//                     return {
+//                         id: `${author}_${authorCounts[author]}`,
+//                         text: tweet.text,
+//                         authorFullname: tweet.authorFullname,
+//                         authorUsername: tweet.authorUsername,
+//                         authorImg: tweet.authorImg,
+//                         createdAt: tweet.createdAt,
+//                         url: tweet.url,
+//                     };
+//                 });
+//             });
             
-            // Only send necessary data to AI
-            const minimalData = formattedData.map(({ id, text }) => ({ id, text }));
+//             // Only send necessary data to AI
+//             const minimalData = formattedData.map(({ id, text }) => ({ id, text }));
 
-            // Format the prompt to return an array of objects
-            const aiPrompt = `
-You are an AI model specialized in analyzing and categorizing social media posts. Your task is to read the content of a post (only the "text" field) and assign the most appropriate category based on its meaning and context.
+//             // Format the prompt to return an array of objects
+//             const aiPrompt = `
+// You are an AI model specialized in analyzing and categorizing social media posts. Your task is to read the content of a post (only the "text" field) and assign the most appropriate category based on its meaning and context.
 
-Ensure that:
+// Ensure that:
 
-Only use the "text" content to determine the category. Do not reference the author, posting time, or any other information.
-Always select the most suitable category. If the content fits into multiple categories, choose the most relevant one.
-If the post does not match any predefined category, create a new, concise, and meaningful category based on the post's topic.
-Do not modify the content of the post. Only add the "category" field.
-Return the result in JSON format
-Categorization Guidelines:
+// Only use the "text" content to determine the category. Do not reference the author, posting time, or any other information.
+// Always select the most suitable category. If the content fits into multiple categories, choose the most relevant one.
+// If the post does not match any predefined category, create a new, concise, and meaningful category based on the post's topic.
+// Do not modify the content of the post. Only add the "category" field.
+// Return the result in JSON format
+// Categorization Guidelines:
 
-- If the post contains news or updates → "News/Update"
-- If the post is related to hackathons, competitions, or winner announcements → "Hackathon Update"
-- If the post announces an event, conference, or invitation to join → "Event Announcement"
-- If the post analyzes the crypto market, financial indicators → "Crypto Market Analysis"
-- If the post mentions collaborations, partnerships, or alliances → "Collaboration Announcement"
-- If the post is a personal story, reflection, or life lesson → "Personal Reflection"
-- If the post is a proposal or introduction of a new project → "Proposal/Project Introduction"
-- If the post contains motivational content, encouragement, or inspiration → "Motivational Post"
-- If the post contains errors or is unavailable → "Error/Unavailable"
-- If the post is meant to connect with the community, discussions, or engagement → "Community Engagement"
-- If the post relates to blockchain development, new technologies → "Blockchain Development"
-- If the post provides financial advice, investment tips → "Financial Advice"
-- If the post contains educational content, learning resources, or tutorials → "Educational Content"
-- If the post does not fit into any of the above categories, create a new category based on its content and meaning.
+// - If the post contains news or updates → "News/Update"
+// - If the post is related to hackathons, competitions, or winner announcements → "Hackathon Update"
+// - If the post announces an event, conference, or invitation to join → "Event Announcement"
+// - If the post analyzes the crypto market, financial indicators → "Crypto Market Analysis"
+// - If the post mentions collaborations, partnerships, or alliances → "Collaboration Announcement"
+// - If the post is a personal story, reflection, or life lesson → "Personal Reflection"
+// - If the post is a proposal or introduction of a new project → "Proposal/Project Introduction"
+// - If the post contains motivational content, encouragement, or inspiration → "Motivational Post"
+// - If the post contains errors or is unavailable → "Error/Unavailable"
+// - If the post is meant to connect with the community, discussions, or engagement → "Community Engagement"
+// - If the post relates to blockchain development, new technologies → "Blockchain Development"
+// - If the post provides financial advice, investment tips → "Financial Advice"
+// - If the post contains educational content, learning resources, or tutorials → "Educational Content"
+// - If the post does not fit into any of the above categories, create a new category based on its content and meaning.
 
-Input data:
-${JSON.stringify(minimalData, null, 2)}
+// Input data:
+// ${JSON.stringify(minimalData, null, 2)}
 
-Return ONLY a valid JSON array of objects with this structure:
-[
-  {
-    "id": "example_1",
-    "text": "post text",
-    "category": "chosen category"
-  }
-]`;
+// Return ONLY a valid JSON array of objects with this structure:
+// [
+//   {
+//     "id": "example_1",
+//     "text": "post text",
+//     "category": "chosen category"
+//   }
+// ]`;
 
-            // Call Gemini API for categorization
-            const aiResponse = await callGemini(aiPrompt);
+//             // Call Gemini API for categorization
+//             const aiResponse = await callGemini(aiPrompt);
 
-            // Check if aiResponse is valid JSON
-            if (typeof aiResponse === 'string') {
-                const graphData = JSON.parse(aiResponse);
+//             // Check if aiResponse is valid JSON
+//             if (typeof aiResponse === 'string') {
+//                 const graphData = JSON.parse(aiResponse);
                 
-                // Merge AI categories with original data
-                const labeledData = formattedData.map((post) => {
-                    const aiPost = graphData.find((p) => p.id === post.id);
-                    return {
-                      ...post,
-                      category: aiPost?.category || "Uncategorized",
-                    };
-                });
+//                 // Merge AI categories with original data
+//                 const labeledData = formattedData.map((post) => {
+//                     const aiPost = graphData.find((p) => p.id === post.id);
+//                     return {
+//                       ...post,
+//                       category: aiPost?.category || "Uncategorized",
+//                     };
+//                 });
 
-                res.json(labeledData);
+//                 res.json(labeledData);
               
-                // Write labeled data to file
-                fs.writeFileSync("data_labeled.txt", JSON.stringify(labeledData, null, 2));
-                console.log("✅ Data has been written to data_labeled.txt!");
-            } else {
-                throw new Error(aiResponse.error);
-            }
+//                 // Write labeled data to file
+//                 fs.writeFileSync("data_labeled.txt", JSON.stringify(labeledData, null, 2));
+//                 console.log("✅ Data has been written to data_labeled.txt!");
+//             } else {
+//                 throw new Error(aiResponse.error);
+//             }
     
-        } catch (error) {
-            res.status(500).json({
-                error: error.message,
-                timestamp: new Date().toISOString()
-            });
-        }
-    });
+//         } catch (error) {
+//             res.status(500).json({
+//                 error: error.message,
+//                 timestamp: new Date().toISOString()
+//             });
+//         }
+//     });
     
 
     router.get("/agents", (req, res) => {
