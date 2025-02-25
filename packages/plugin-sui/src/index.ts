@@ -13,6 +13,7 @@ import borrow from "./actions/suilend/borrow.ts";
 import analyzeSentimentAction from "./actions/analyze-sentiment.ts";
 import chatData from "./actions/give-insight-data.ts";
 import labelData from "./actions/label-data.ts";
+import quizGen from "./actions/quiz_gen.ts";
 // Export all actions
 export {
     transferToken,
@@ -26,7 +27,8 @@ export {
     borrow,
     analyzeSentimentAction,
     chatData,
-    labelData
+    labelData,
+    quizGen
 };
 
 // Export providers and services
@@ -48,7 +50,8 @@ export const suiPlugin: Plugin = {
         borrow, 
         analyzeSentimentAction, 
         chatData,
-        labelData
+        labelData,
+        quizGen
     ],
     evaluators: [],
     providers: [walletProvider],

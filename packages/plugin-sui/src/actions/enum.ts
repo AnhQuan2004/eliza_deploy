@@ -27,3 +27,7 @@ export enum ChatDataAction {
 export enum LabelDataAction {
     LABEL_DATA = "LABEL_DATA",
 }
+
+export enum QuizGenAction {
+    QUIZ_GEN = "QUIZ_GEN",
+}

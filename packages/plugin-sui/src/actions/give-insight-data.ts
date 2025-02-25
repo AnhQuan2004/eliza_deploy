@@ -119,7 +119,7 @@ export default {
     name: "DATA_INSIGHT",
     similes: [
         "insight data", "what is the data", "show me the data purpose",
-        "give me insights", "data insight", "what is author post", "give me author post", "what post about", "what post about author"
+        "give me insights", "data insight", "what is author post", "give me author post", "what post about", "`what post about author`"
     ],
     description: "Insight data from all collected data",
 
