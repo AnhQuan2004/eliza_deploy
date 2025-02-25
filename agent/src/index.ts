@@ -53,6 +53,7 @@ import {
 
 import { bootstrapPlugin } from "@elizaos/plugin-bootstrap";
 import { normalizeCharacter } from "@elizaos/plugin-di";
+// import { movementPlugin } from "@elizaos/plugin-movement";
 // import createGoatPlugin from "@elizaos/plugin-goat";
 // import createZilliqaPlugin from "@elizaos/plugin-zilliqa";
 
@@ -110,7 +111,7 @@ import { createNodePlugin } from "@elizaos/plugin-node";
 // import { squidRouterPlugin } from "@elizaos/plugin-squid-router";
 // import { stargazePlugin } from "@elizaos/plugin-stargaze";
 // import { storyPlugin } from "@elizaos/plugin-story";
-import { suiPlugin } from "@elizaos/plugin-sui";
+import { movementPlugin } from "@elizaos/plugin-movement";
 // import { TEEMode, teePlugin } from "@elizaos/plugin-tee";
 // import { teeLogPlugin } from "@elizaos/plugin-tee-log";
 // import { teeMarlinPlugin } from "@elizaos/plugin-tee-marlin";
@@ -770,23 +771,21 @@ function initializeDatabase(dataDir: string) {
     //     return db;
     // } else {
 
-        const filePath =
-            process.env.SQLITE_FILE ?? path.resolve(dataDir, "db.sqlite");
-        elizaLogger.info(`Initializing SQLite database at ${filePath}...`);
-        const db = new SqliteDatabaseAdapter(new Database(filePath));
+    const filePath =
+        process.env.SQLITE_FILE ?? path.resolve(dataDir, "db.sqlite");
+    elizaLogger.info(`Initializing SQLite database at ${filePath}...`);
+    const db = new SqliteDatabaseAdapter(new Database(filePath));
 
-        // Test the connection
-        db.init()
-            .then(() => {
-                elizaLogger.success(
-                    "Successfully connected to SQLite database"
-                );
-            })
-            .catch((error) => {
-                elizaLogger.error("Failed to connect to SQLite:", error);
-            });
+    // Test the connection
+    db.init()
+        .then(() => {
+            elizaLogger.success("Successfully connected to SQLite database");
+        })
+        .catch((error) => {
+            elizaLogger.error("Failed to connect to SQLite:", error);
+        });
 
-        return db;
+    return db;
     // }
 }
 
@@ -1173,7 +1172,7 @@ export async function createAgent(
             // getSecret(character, "TON_PRIVATE_KEY") ? tonPlugin : null,
             // getSecret(character, "THIRDWEB_SECRET_KEY") ? thirdwebPlugin : null,
             // getSecret(character, "SUI_PRIVATE_KEY") ? suiPlugin : null,
-            suiPlugin
+            movementPlugin,
             // getSecret(character, "STORY_PRIVATE_KEY") ? storyPlugin : null,
             // getSecret(character, "SQUID_SDK_URL") &&
             //     getSecret(character, "SQUID_INTEGRATOR_ID") &&

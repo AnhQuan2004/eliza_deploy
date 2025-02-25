@@ -340,7 +340,7 @@ export async function getTransformedUserData(
         Events: [],
         Other: [],
     };
-
+    
     posts.forEach((post) => {
         let categorized = false;
 
