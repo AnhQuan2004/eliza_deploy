@@ -1,53 +1,62 @@
-# Movement Plugin
+# Movement Plugin 🔄
+
+> "InfoFi transforms blockchain data into market-driven intelligence, where every interaction becomes a valuable insight for the ecosystem."
+
+**Movement Plugin** is an essential InfoFi integration module for the Movement blockchain ecosystem, designed to bridge AI-powered analytics with market-driven information distribution. As a core component of the **FlyFish** ecosystem, it enables seamless interaction with blockchain data, DeFi operations, and market-validated insights.
+
+<p align="center">
+  <img alt="Movement Plugin Architecture" title="Architecture" src="./image/architecture.png" width="800">
+</p>
+
+## Table of Contents
+
+- [Movement Plugin 🔄](#movement-plugin-)
+  - [Table of Contents](#table-of-contents)
+  - [Overview](#overview)
+    - [🌟 InfoFi-Driven Features](#-infofi-driven-features)
+  - [Project Structure](#project-structure)
+  - [Technical Integration](#technical-integration)
+    - [Response Format](#response-format)
+  - [License](#license)
 
 ## Overview
-Movement Plugin is a comprehensive blockchain integration module designed to provide seamless interaction with the Sui blockchain ecosystem. It offers a robust set of features for wallet management, decentralized finance (DeFi) operations, and advanced blockchain analytics.
 
-# Table of Contents
-- [Movement Plugin](#movement-plugin)
-  - [Overview](#overview)
-- [Table of Contents](#table-of-contents)
-- [Project structure](#project-structure)
-  - [Response Format](#response-format)
-  - [Core Capabilities](#core-capabilities)
-    - [Suilend Integration](#suilend-integration)
-    - [Get insights from data](#get-insights-from-data)
-  - [Architecture](#architecture)
+Movement Plugin redefines **`blockchain interactions`** by implementing **`InfoFi principles`**, merging market intelligence with blockchain operations. It transforms complex blockchain data into quantifiable, market-valued insights that drive better decision-making within the Movement ecosystem.
 
-# Project structure
-``` 
+### 🌟 InfoFi-Driven Features
+- 📊 **Market Intelligence** – Transform blockchain data into market-valued insights
+- 🔄 **Decentralized Analytics** – Leverage collective market wisdom for data validation
+- 🎯 **Sentiment Analysis** – Capture and quantify market sentiment in real-time
+- 📈 **Value Discovery** – Enable market-driven pricing of blockchain information
+
+## Project Structure
+```
 packages/plugin-movement/
-├── .npmignore                 # NPM package ignore rules
-├── package.json              # Package configuration and dependencies
 ├── src/
-│   ├── actions/              # Action handlers for different operations
+│   ├── actions/              # Market-driven action handlers
 │   │   ├── analyze-sentiment.ts
-│   │   ├── enum.ts          # Action type enums
+│   │   ├── enum.ts          
 │   │   ├── give-insight-data.ts
-│   │   ├── prompts/        # LLM prompts for various operations
-│   │   │   └── index.ts
-│   │   ├── transfer.ts
-│   │   └── utils/          # Action utilities
-│   │       └── index.ts
-│   ├── providers/           # Service providers
-│   │   └── wallet.ts       # Wallet provider implementation
-│   ├── services/           # Core services
-│   │   └── tusky.ts       # call tusky api
-│   ├── tests/             # Test files
-│   │   └── wallet.test.ts
-│   ├── environment.ts      # Environment configuration
-│   ├── index.ts           # Main plugin entry point
-│   └── utils.ts           # General utilities
+│   │   ├── prompts/         # AI-powered market intelligence
+│   │   └── utils/  
+│   │            
+│   ├── providers/           # InfoFi service providers
+│   ├── services/           # Core market intelligence services
+│   ├── tests/              
+│   └── utils.ts            # InfoFi utilities
 ```
 
-## Response Format
+## Technical Integration
+
+### Response Format
 ```json
 {
     "text": "",
     "action": "",
-    "params: ""
+    "params": {}
 }
 ```
 
-## Architecture
-![image](./image/architecture.png)
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
