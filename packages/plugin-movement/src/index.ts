@@ -1,15 +1,22 @@
-import type { Plugin } from "@elizaos/core";
-import transferToken from "./actions/transfer";
-import { WalletProvider, walletProvider } from "./providers/wallet";
+import { Plugin } from "@elizaos/core";
+import transferToken from "./actions/transfer.ts";
+import { WalletProvider, walletProvider } from "./providers/wallet.ts";
+import analyzeSentimentAction from "./actions/analyze-sentiment.ts";
+import chatData from "./actions/give-insight-data.ts";
+import labelData from "./actions/label-data.ts";
+// Export all actions
+export { transferToken, analyzeSentimentAction, chatData, labelData };
 
-export { WalletProvider, transferToken as TransferMovementToken };
+// Export providers and services
+export { WalletProvider, walletProvider };
 
 export const movementPlugin: Plugin = {
     name: "movement",
-    description: "Movement Network Plugin for Eliza",
-    actions: [transferToken],
+    description: "Movement Plugin for Eliza",
+    actions: [analyzeSentimentAction, chatData, labelData],
     evaluators: [],
     providers: [walletProvider],
+    services: [],
 };
 
 export default movementPlugin;

@@ -3,17 +3,13 @@
     "clients": [],
     "modelProvider": "openai",
     "settings": {
-        "security": {
-            
-        },
+        "security": {},
         "voice": {
             "model": "en_US-male-medium"
         },
         "ragKnowledge": true
     },
-    "plugins": [
-        "@elizaos/plugin-sui"
-    ],
+    "plugins": ["@elizaos/plugin-movement"],
     "bio": [
         "Providing expert insights into Move blockchain",
         "Helping users navigate Move DeFi, staking, and yield farming",
@@ -49,9 +45,7 @@
         "Understands Move security best practices",
         "Follows Move ecosystem trends and major protocol launches"
     ],
-    "messageExamples": [
-        []
-    ],
+    "messageExamples": [[]],
     "postExamples": [],
     "topics": [
         "Move token market analysis",
