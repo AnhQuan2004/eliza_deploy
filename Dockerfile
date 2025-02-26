@@ -18,6 +18,7 @@ WORKDIR /app
 COPY package.json ./
 COPY pnpm-lock.yaml ./
 COPY tsconfig.json ./
+COPY .env ./
 
 # Copy the rest of the application code
 COPY ./src ./src
@@ -55,7 +56,8 @@ COPY --from=builder /app/characters /app/characters
 COPY --from=builder /app/dist /app/dist
 COPY --from=builder /app/tsconfig.json /app/
 COPY --from=builder /app/pnpm-lock.yaml /app/
+COPY --from=builder /app/.env /app/
 
 EXPOSE 3000
 # Set the command to run the application
-CMD ["pnpm", "start", "--characters=./characters/gmove.character.json"]
+CMD ["pnpm", "start", "--characters=./characters/aptos.character.json"]

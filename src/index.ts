@@ -1,4 +1,4 @@
-import { DirectClient } from "custom-elizaos-client-direct";
+import { DirectClient } from "@anhquan03/custom-elizaos-client-direct";
 import {
   AgentRuntime,
   elizaLogger,
@@ -16,8 +16,9 @@ import { fileURLToPath } from "url";
 import { initializeDbCache } from "./cache/index.ts";
 import { character } from "./character.ts";
 import { startChat } from "./chat/index.ts";
-import { analyzeSentimentAction, gmovePlugin, chatData, labelData } from "elizaos-plugin-gmove"
+import { quizGen, aptosPlugin } from "elizaos-plugin-aptos";
 import { initializeClients } from "./clients/index.ts";
+
 import {
   getTokenForProvider,
   loadCharacters,
@@ -59,11 +60,11 @@ export function createAgent(
     plugins: [
       bootstrapPlugin,
       nodePlugin,
-      gmovePlugin,
       character.settings?.secrets?.WALLET_PUBLIC_KEY ? solanaPlugin : null,
+      aptosPlugin,
     ].filter(Boolean),
     providers: [],
-    actions: [analyzeSentimentAction, chatData, labelData],
+    actions: [quizGen],
     services: [],
     managers: [],
     cacheManager: cache,
