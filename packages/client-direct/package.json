@@ -1,5 +1,5 @@
 {
-	"name": "custom-elizaos-client-direct",
+	"name": "custom-elizaos-client-direct-moveduck",
 	"version": "0.1.12",
 	"main": "dist/index.js",
 	"module": "dist/index.js",
