@@ -18,14 +18,15 @@ WORKDIR /app
 COPY package.json ./
 COPY pnpm-lock.yaml ./
 COPY tsconfig.json ./
-COPY .env ./
+COPY .npmrc ./
+COPY .env.example ./.env
 
 # Copy the rest of the application code
 COPY ./src ./src
 COPY ./characters ./characters
 
 # Install dependencies and build the project
-RUN pnpm install 
+RUN pnpm install
 RUN pnpm build 
 
 # Create dist directory and set permissions
@@ -56,6 +57,7 @@ COPY --from=builder /app/characters /app/characters
 COPY --from=builder /app/dist /app/dist
 COPY --from=builder /app/tsconfig.json /app/
 COPY --from=builder /app/pnpm-lock.yaml /app/
+COPY --from=builder /app/.npmrc /app/
 COPY --from=builder /app/.env /app/
 
 EXPOSE 3000

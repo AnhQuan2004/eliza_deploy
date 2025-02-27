@@ -1,4 +1,4 @@
-import { DirectClient } from "@anhquan03/custom-elizaos-client-direct";
+import { DirectClient } from "custom-elizaos-client-direct-moveduck";
 import {
   AgentRuntime,
   elizaLogger,
@@ -16,7 +16,7 @@ import { fileURLToPath } from "url";
 import { initializeDbCache } from "./cache/index.ts";
 import { character } from "./character.ts";
 import { startChat } from "./chat/index.ts";
-import { quizGen, aptosPlugin } from "elizaos-plugin-aptos";
+import { quizGenAction } from "elizaos-plugin-moveduck"
 import { initializeClients } from "./clients/index.ts";
 
 import {
@@ -60,11 +60,11 @@ export function createAgent(
     plugins: [
       bootstrapPlugin,
       nodePlugin,
+      quizGenAction,
       character.settings?.secrets?.WALLET_PUBLIC_KEY ? solanaPlugin : null,
-      aptosPlugin,
     ].filter(Boolean),
     providers: [],
-    actions: [quizGen],
+    actions: [quizGenAction],
     services: [],
     managers: [],
     cacheManager: cache,

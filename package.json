@@ -6,7 +6,7 @@
   "scripts": {
     "build": "tsup src/index.ts --format esm --dts",
     "start": "tsc && node --loader ts-node/esm src/index.ts",
-    "start:aptos": "pnpm start --characters=./characters/aptos.character.json",
+    "start:moveDuck": "pnpm start --characters=./characters/moveDuck.character.json",
     "clean": "./scripts/clean.sh",
     "start:service:all": "pm2 start pnpm --name=\"all\" --restart-delay=3000 --max-restarts=10 -- run start:all",
     "stop:service:all": "pm2 stop all"
@@ -24,11 +24,11 @@
     "@elizaos/plugin-node": "0.1.9",
     "@elizaos/plugin-solana": "0.1.9",
     "@elizaos/plugin-starknet": "0.1.9",
-    "@elizaos/plugin-aptos": "0.1.9",
     "@tavily/core": "0.0.2",
     "amqplib": "0.10.5",
     "better-sqlite3": "11.5.0",
-    "@anhquan03/custom-elizaos-client-direct": "^0.1.13",
+    "custom-elizaos-client-direct-moveduck": "^0.1.12",
+    "elizaos-plugin-moveduck": "0.1.3",
     "fs": "0.0.1-security",
     "net": "1.0.2",
     "path": "0.12.7",
