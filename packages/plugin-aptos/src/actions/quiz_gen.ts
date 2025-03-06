@@ -3,20 +3,6 @@ import { quizGenPrompt } from "./prompts";
 import { QuizGenAction } from "./enum";
 import axios from 'axios';
 
-// Add interface for Ideogram API response
-interface IdeogramResponse {
-    created: string;
-    data: Array<{
-        url: string;
-        is_image_safe: boolean;
-        prompt: string;
-        resolution: string;
-        seed: number;
-        style_type: string;
-    }>;
-}
-
-// Update interfaces
 interface QuizQuestion {
     question: string;
     answerA: string;
@@ -28,7 +14,6 @@ interface QuizQuestion {
 
 interface QuizData {
     questions: QuizQuestion[];
-    imageUrl: string[];
 }
 
 // Function to store quiz data to backend
@@ -79,13 +64,12 @@ export default {
             const response = await generateText({
                 runtime,
                 context: JSON.stringify(context),
-                modelClass: ModelClass.MEDIUM,
+                modelClass: ModelClass.SMALL,
             });
 
             let parsedQuestions: QuizQuestion[] = [];
             let parsedResponse: any;
             const processedQuestions = new Set();
-            const imageUrls: string[] = [];
 
             try {
                 // First try parsing as JSON
@@ -137,68 +121,18 @@ export default {
                 }
             }
 
-            // Generate images for each question
-            try {
-                for (let i = 0; i < parsedQuestions.length; i++) {
-                    const question = parsedQuestions[i];
-                    const imagePrompt = `An animated character, resembling a yellow duck, wearing glasses and a white lab coat. The character stands in front of a large whiteboard that reads '${question.question}'. The background appears to be a room with a window.`;
-                    
-                    const ideogramResponse = await axios.post<IdeogramResponse>(
-                        'https://api.ideogram.ai/generate',
-                        {
-                            image_request: {
-                                prompt: imagePrompt,
-                                "aspect_ratio": "ASPECT_10_16",
-                                "model": "V_2",
-                                "magic_prompt_option": "AUTO",
-                                "num_images": 1
-                            }
-                        },
-                        {
-                            headers: {
-                                'Api-Key': process.env.IDEOGRAM_API_KEY,
-                                'Content-Type': 'application/json'
-                            }
-                        }
-                    );
+            const quizData: QuizData = {
+                questions: parsedQuestions
+            };
 
-                    if (ideogramResponse.status === 200 && ideogramResponse.data.data.length > 0) {
-                        const [image] = ideogramResponse.data.data;
-                        imageUrls.push(image.url);
-                    }
-                }
-
-                const quizData: QuizData = {
-                    questions: parsedQuestions,
-                    imageUrl: imageUrls
-                };
-
-                // Store quiz data to backend
-                await storeQuizToBackend(quizData);
-                
-                callback({
-                    text: response.trim(),
-                    action: QuizGenAction.QUIZ_GEN,
-                    params: quizData
-                });
-
-            } catch (error) {
-                elizaLogger.error('Error generating images:', error);
-                
-                const quizData: QuizData = {
-                    questions: parsedQuestions,
-                    imageUrl: imageUrls
-                };
-                
-                // Store quiz data to backend even without images
-                await storeQuizToBackend(quizData);
-                
-                callback({
-                    text: response.trim(),
-                    action: QuizGenAction.QUIZ_GEN,
-                    params: quizData
-                });
-            }
+            // Store quiz data to backend
+            await storeQuizToBackend(quizData);
+            
+            callback({
+                text: response.trim(),
+                action: QuizGenAction.QUIZ_GEN,
+                params: quizData
+            });
 
         } catch (error) {
             console.error('Error in quiz gen:', error);
